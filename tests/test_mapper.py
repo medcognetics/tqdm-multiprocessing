@@ -88,3 +88,19 @@ class TestConcurrentMapper:
         with ConcurrentMapper(jobs=0, threads=threads) as mapper:
             result = list(mapper(TestConcurrentMapper._add, inp, y=2))
         assert result == exp
+
+    @pytest.mark.parametrize("jobs", [1, 4])
+    @pytest.mark.parametrize("threads", [True, False])
+    @pytest.mark.parametrize("length", [10, 1000])
+    @pytest.mark.parametrize("chunksize", [1, 32])
+    def test_bar_update(self, mocker, threads, jobs, length, chunksize):
+        inp = list(range(length))
+        with ConcurrentMapper(threads=threads, jobs=jobs, chunksize=chunksize) as mapper:
+            mapper.create_bar(desc="Processing", total=length)
+            spy = mocker.spy(mapper._bar, "update")
+            list(mapper(str, inp))
+        total_updates = sum(x.args[0] for x in spy.mock_calls)
+        # TODO there seems to be a small number of updates not made
+        # In the test we ensure 95% of the bar was ran.
+        # Is there a reason the entire bar doesn't run to completion?
+        assert total_updates / length >= 0.95

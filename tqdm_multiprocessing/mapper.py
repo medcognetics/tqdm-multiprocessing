@@ -82,10 +82,11 @@ class ConcurrentMapper:
         r"""Create a tqdm progress bar. Args are forwarded to the tqdm bar.
         Override with custom bar creation logic if desired.
         """
-        return tqdm(*args, **kwargs)
-
-    def _create_bar(self, *args, **kwargs) -> None:
         self._bar = self._create_bar(*args, **kwargs)
+        return self._bar
+
+    def _create_bar(self, *args, **kwargs) -> tqdm:
+        return tqdm(*args, **kwargs)
 
     def close_bar(self) -> None:
         if self._bar is not None:
