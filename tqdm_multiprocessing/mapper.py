@@ -46,6 +46,9 @@ class ConcurrentMapper:
         exception_callback:
             Optional callback to be called if a worker encounters an exception
 
+        unroll_iterators:
+            If ``True``, an iterator returned by the map function will be unrolled into the final result.
+
     Examples::
 
         >>> iterable = list(range(5))
@@ -62,6 +65,7 @@ class ConcurrentMapper:
     chunksize: int = 1
     timeout: Optional[float] = None
     exception_callback: Optional[Callable[[Future], Any]] = None
+    unroll_iterators: bool = True
 
     _pool: Optional[PoolExecutor] = field(init=False, repr=False, default=None)
     _bar: Optional[tqdm] = field(init=False, repr=False, default=None)
@@ -102,6 +106,7 @@ class ConcurrentMapper:
             partial(self._process_chunk, fn),
             chunks,
             *args,
+            unroll_iterators=self.unroll_iterators,
             **kwargs,
         )
         return self._chain_from_iterable_of_lists(results)
@@ -198,13 +203,23 @@ class ConcurrentMapper:
             yield chunk
 
     @classmethod
-    def _process_chunk(cls, fn, chunk, *args, **kwargs):
+    def _process_chunk(cls, fn, chunk, *args, unroll_iterators: bool = True, **kwargs):
         """Processes a chunk of an iterable passed to map.
         Runs the function passed to map() on a chunk of the
         iterable passed to map.
         This function is run in a separate process.
         """
-        return [fn(c, *args, **kwargs) for c in chunk]
+        result: List[Any] = []
+        for c in chunk:
+            r = fn(c, *args, **kwargs)
+            if isinstance(r, Iterator):
+                if unroll_iterators:
+                    result = result + list(r)
+                else:
+                    raise TypeError("Function passed to map() must not return an iterator")
+            else:
+                result.append(r)
+        return result
 
     @classmethod
     def _chain_from_iterable_of_lists(cls, iterable: Iterable[List[A]]) -> Iterator[A]:
