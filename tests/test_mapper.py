@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from typing import Iterator
+
 import pytest
 
 from tqdm_multiprocessing.mapper import ConcurrentMapper
@@ -104,3 +106,22 @@ class TestConcurrentMapper:
         # In the test we ensure 95% of the bar was ran.
         # Is there a reason the entire bar doesn't run to completion?
         assert total_updates / length >= 0.95
+
+    @staticmethod
+    def _iter(x: int) -> Iterator[str]:
+        for divisor in (1, 2, 3):
+            yield str(x / divisor)
+
+    @pytest.mark.parametrize("jobs", [1, 4, None])
+    @pytest.mark.parametrize("threads", [True, False])
+    @pytest.mark.parametrize("length", [10, 1000])
+    @pytest.mark.parametrize("chunksize", [1, 32])
+    @pytest.mark.parametrize("inp_type", [list, set, iter])
+    def test_map_iter(self, threads, jobs, length, chunksize, inp_type):
+        inp = list(range(length))
+        exp = [i for x in inp for i in self._iter(x)]
+        inp = inp_type(inp)
+        with ConcurrentMapper(threads=threads, jobs=jobs, chunksize=chunksize) as mapper:
+            mapper.create_bar(desc="Processing", total=length)
+            result = list(mapper(self._iter, inp))
+        assert result == exp
