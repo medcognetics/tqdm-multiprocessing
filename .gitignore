@@ -136,4 +136,3 @@ coverage.xml
 .coverage
 
 *.orig.*
-**/version.py
