@@ -49,7 +49,7 @@ jobs:
                 command: make types
             - codecov/upload:
                 file: coverage.xml
-      	    - when:
+            - when:
                 condition:
                   equal: [ master, << pipeline.git.branch >> ]
                 steps:
