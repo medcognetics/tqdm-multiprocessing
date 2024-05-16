@@ -17,10 +17,10 @@ include $(CONFIG_FILE)
 endif
 
 check: ## run quality checks and unit tests
+	$(MAKE) test
 	$(MAKE) style
 	$(MAKE) quality
 	$(MAKE) types
-	$(MAKE) test
 
 clean: ## remove cache files
 	find $(CLEAN_DIRS) -path '*/__pycache__/*' -delete
@@ -30,7 +30,7 @@ clean: ## remove cache files
 	find $(CLEAN_DIRS) -name '*,cover' -type f -delete
 	find $(CLEAN_DIRS) -name '*.orig' -type f -delete
 
-clean-env: ## remove the virtual environment directory
+clean-venv: ## remove the virtual environment directory
 	rm -rf $(VENV)
 
 init: ## pulls submodules and initializes virtual environment
@@ -101,10 +101,16 @@ $(VENV)/bin/activate-%: $(VENV)/bin/activate
 	$(PYTHON) -m pip install -e .[$*]
 	touch $(VENV)/bin/activate-$*
 
-pypi:
+pypi: $(VENV)/bin/activate-dist
 	$(PYTHON) -m build
 	$(PYTHON) -m twine upload dist/*
 
 help: ## display this help message
 	@echo "Please use \`make <target>' where <target> is one of"
 	@perl -nle'print $& if m{^[a-zA-Z_-]+:.*?## .*$$}' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m  %-25s\033[0m %s\n", $$1, $$2}'
+
+reset:
+	$(MAKE) clean
+	$(MAKE) clean-venv
+	$(MAKE) init
+	$(MAKE) check
