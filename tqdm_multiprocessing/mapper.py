@@ -59,6 +59,7 @@ class ConcurrentMapper:
         >>> print(result)
         [1, 2, 3, 4, 5]
     """
+
     threads: bool = False
     jobs: Optional[int] = None
     ignore_exceptions: bool = False
